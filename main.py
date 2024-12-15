@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+import numpy as np
 
 from ml.data import apply_label, process_data
 from ml.model import inference, load_model
@@ -26,25 +27,22 @@ class Data(BaseModel):
     hours_per_week: int = Field(..., example=40, alias="hours-per-week")
     native_country: str = Field(..., example="United-States", alias="native-country")
 
-path = None # TODO: enter the path for the saved encoder 
-encoder = load_model(path)
+project_path = os.path.dirname(os.path.abspath(__file__))
+enc_path = os.path.join(project_path, "model", "encoder.pkl")
+mod_path = os.path.join(project_path, "model", "model.pkl")
 
-path = None # TODO: enter the path for the saved model 
-model = load_model(path)
+encoder = load_model(enc_path)
 
-# TODO: create a RESTful API using FastAPI
-app = None # your code here
+model = load_model(mod_path)
 
-# TODO: create a GET on the root giving a welcome message
+app = FastAPI()
+
 @app.get("/")
 async def get_root():
-    """ Say hello!"""
-    # your code here
-    pass
-
-
+    return{"message": "Welcome, you're connected to the API!"}
+    
 # TODO: create a POST on a different path that does model inference
-@app.post("/data/")
+@app.post("/predict")
 async def post_inference(data: Data):
     # DO NOT MODIFY: turn the Pydantic model into a dict.
     data_dict = data.dict()
@@ -64,11 +62,15 @@ async def post_inference(data: Data):
         "sex",
         "native-country",
     ]
-    data_processed, _, _, _ = process_data(
+    data_processed, _, _, _= process_data(
+        data,
+        categorical_features=cat_features,
+        training=False,
+        encoder=encoder        
         # your code here
         # use data as data input
         # use training = False
         # do not need to pass lb as input
     )
-    _inference = None # your code here to predict the result using data_processed
+    _inference = inference(model, data_processed)
     return {"result": apply_label(_inference)}

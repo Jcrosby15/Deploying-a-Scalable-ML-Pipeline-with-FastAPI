@@ -1,28 +1,127 @@
-import pytest
-# TODO: add necessary import
+import os
+import pandas as pd
+from sklearn.model_selection import KFold
+import sklearn
+import numpy as np
+from ml.data import process_data
+from ml.model import (
+    compute_model_metrics,
+    inference,
+    train_model
+)
 
-# TODO: implement the first test. Change the function name and input as needed
-def test_one():
+def test_model():
     """
-    # add description for the first test
+    test model used for training the data
     """
-    # Your code here
-    pass
+    project_path = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(project_path, "data", "census.csv")
+    #print(data_path)
+    data = pd.read_csv(data_path)
+
+    k = 5
+    kf = KFold(n_splits=k, shuffle=True, random_state = 42)
+    for tr,te in kf.split(data):
+        train, test = data.iloc[tr], data.iloc[te]
+
+    cat_features = [
+        "workclass",
+        "education",
+        "marital-status",
+        "occupation",
+        "relationship",
+        "race",
+        "sex",
+        "native-country",
+    ]
+
+    X_train, y_train, encoder, lb = process_data(
+        train, 
+        categorical_features= cat_features,
+        label="salary",
+     training= True
+    )
+
+    model = train_model(X_train,y_train)
+    assert type(model) == sklearn.ensemble._forest.RandomForestClassifier
+    
 
 
-# TODO: implement the second test. Change the function name and input as needed
-def test_two():
-    """
-    # add description for the second test
-    """
-    # Your code here
-    pass
 
+def test_valid_metrics():
+    """
+    test metrics returned are valid
+    """
+    project_path = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(project_path, "data", "census.csv")
+    #print(data_path)
+    data = pd.read_csv(data_path)
 
-# TODO: implement the third test. Change the function name and input as needed
-def test_three():
+    k = 5
+    kf = KFold(n_splits=k, shuffle=True, random_state = 42)
+    for tr,te in kf.split(data):
+        train, test = data.iloc[tr], data.iloc[te]
+
+    cat_features = [
+        "workclass",
+        "education",
+        "marital-status",
+        "occupation",
+        "relationship",
+        "race",
+        "sex",
+        "native-country",
+    ]
+
+    X_train, y_train, encoder, lb = process_data(
+        train, 
+        categorical_features= cat_features,
+        label="salary",
+     training= True
+    )
+
+    model = train_model(X_train, y_train)
+    preds = inference(model, X_train)
+    metrics = compute_model_metrics(y_train, preds)
+    for m in metrics:
+        assert m >= 0 and m <= 1
+
+def test_inference():
     """
-    # add description for the third test
+    test whether inference values are all True False (0,1)
     """
-    # Your code here
-    pass
+    project_path = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(project_path, "data", "census.csv")
+    #print(data_path)
+    data = pd.read_csv(data_path)
+
+    k = 5
+    kf = KFold(n_splits=k, shuffle=True, random_state = 42)
+    for tr,te in kf.split(data):
+        train, test = data.iloc[tr], data.iloc[te]
+
+    cat_features = [
+        "workclass",
+        "education",
+        "marital-status",
+        "occupation",
+        "relationship",
+        "race",
+        "sex",
+        "native-country",
+    ]
+
+    X_train, y_train, encoder, lb = process_data(
+        train, 
+        categorical_features= cat_features,
+        label="salary",
+     training= True
+    )
+    model = train_model(X_train, y_train)
+    inf = inference(model, X_train)
+    assert np.all((inf==0)|(inf==1)) == True
+
+if __name__ == "__main__":
+    test_model()
+    test_valid_metrics()
+    test_inference()
